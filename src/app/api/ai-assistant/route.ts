@@ -26,7 +26,7 @@ export async function POST(req:Request){
  }
  try{
   const messages=[{role:'system' as const,content:system},...history.filter((m)=>m.text!==message).map((m)=>({role:m.role as 'user'|'assistant',content:m.text})),{role:'user' as const,content:message}];
-  const r=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${key}`,'HTTP-Referer':process.env.NEXT_PUBLIC_SITE_URL||'https://ather-ar.vercel.app','X-Title':'أثر - مساعد تعليمي'},body:JSON.stringify({model,messages,temperature:0.4,max_tokens:1200})});
+  const r=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${key}`,'HTTP-Referer':process.env.NEXT_PUBLIC_SITE_URL||'https://ather-ar.vercel.app','X-Title':'Ather Educational Assistant'},body:JSON.stringify({model,messages,temperature:0.4,max_tokens:1200})});
   const data=await r.json();
   if(!r.ok)throw new Error(data?.error?.message||'OpenRouter AI request failed');
   const reply=data?.choices?.[0]?.message?.content||'لم أتمكن من صياغة رد الآن.';
