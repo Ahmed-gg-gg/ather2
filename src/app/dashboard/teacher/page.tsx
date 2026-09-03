@@ -1,0 +1,14 @@
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
+import BackButton from '@/components/back-button';
+
+export default async function TeacherDashboard(){
+ const supabase=await createClient(); const {data:{user}}=await supabase.auth.getUser(); if(!user)redirect('/login');
+ const {data:profile}=await supabase.from('profiles').select('full_name,role').eq('id',user.id).single();
+ if(!['teacher','admin'].includes(profile?.role??''))redirect('/dashboard');
+ const {count:students}=await supabase.from('profiles').select('id',{count:'exact',head:true}).eq('role','student').eq('is_active',true);
+ const {count:attempts}=await supabase.from('quiz_attempts').select('id',{count:'exact',head:true});
+ const {data:recent}=await supabase.from('quiz_attempts').select('id,score,total,created_at,profiles(full_name),quizzes(title)').order('created_at',{ascending:false}).limit(10);
+ const avg=(recent??[]).length?Math.round((recent??[]).reduce((s,a)=>s+(a.total?Number(a.score)/Number(a.total)*100:0),0)/(recent??[]).length):0;
+ return <div className="min-h-screen bg-paper"><div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10"><div className="mb-4"><BackButton/></div><h1 className="font-display text-2xl font-medium text-ink">لوحة المعلم 👨‍🏫</h1><p className="text-sm text-ink-soft mt-1 mb-7">مرحبًا {profile?.full_name??''} — نظرة سريعة على نشاط الطلاب.</p><div className="grid sm:grid-cols-3 gap-3"><div className="bg-surface border border-line rounded-xl p-5"><p className="text-xs text-ink-faint">طلاب نشطون</p><p className="text-3xl font-bold mt-2">{students??0}</p></div><div className="bg-surface border border-line rounded-xl p-5"><p className="text-xs text-ink-faint">محاولات الاختبارات</p><p className="text-3xl font-bold mt-2">{attempts??0}</p></div><div className="bg-surface border border-line rounded-xl p-5"><p className="text-xs text-ink-faint">متوسط آخر المحاولات</p><p className="text-3xl font-bold mt-2">{avg}%</p></div></div><div className="mt-8"><h2 className="font-display text-lg text-ink mb-3">آخر نتائج الطلاب</h2><div className="bg-surface border border-line rounded-xl overflow-hidden">{(recent??[]).map((a:any)=><div key={a.id} className="grid grid-cols-[1fr_1fr_80px] sm:grid-cols-[1.2fr_1.5fr_100px] gap-3 px-4 py-3 border-b border-line last:border-0"><div className="text-sm truncate">{a.profiles?.full_name??'طالب'}</div><div className="text-sm text-ink-soft truncate">{a.quizzes?.title??'اختبار'}</div><div className="text-sm font-bold">{a.total?Math.round(Number(a.score)/Number(a.total)*100):0}%</div></div>)}{(!recent||recent.length===0)&&<p className="p-5 text-sm text-ink-faint">لا توجد محاولات حتى الآن.</p>}</div></div></div></div>
+}
