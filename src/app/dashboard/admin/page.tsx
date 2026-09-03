@@ -13,7 +13,7 @@ export default async function AdminPage(){
   const{data:profile}=await adminClient.from('profiles').select('role').eq('id',user.id).single();
   if(!['admin','teacher'].includes(profile?.role??''))redirect('/dashboard');
   const[{data:users},{data:authUsers}]=await Promise.all([
-    supabase.from('profiles').select('id, full_name, role, grade, created_at, is_active').order('created_at',{ascending:false}),
+    adminClient.from('profiles').select('id, full_name, role, grade, created_at, is_active').order('created_at',{ascending:false}),
     adminClient.auth.admin.listUsers({perPage:1000})
   ]);
   const authById=new Map((authUsers?.users??[]).map(u=>[u.id,u]));
