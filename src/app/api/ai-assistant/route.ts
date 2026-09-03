@@ -19,19 +19,19 @@ export async function POST(req:Request){
  const analytics=mode==='teacher'&&isTeacher?body.analytics??null:null;
  const analyticsText=analytics?`\nبيانات التحليلات الحالية (استخدمها كما هي ولا تخترع أرقامًا): ${JSON.stringify(analytics).slice(0,18000)}`:'';
  const system=`أنت «مساعد أثر الذكي»، مساعد تعليمي عربي عملي ومشجع. افهم سؤال المستخدم أولًا ثم أعطه إجابة مفيدة ومباشرة، مع أمثلة عند الحاجة. لا تكرر عبارات عامة مثل «اكتب ما فهمته» إذا كان السؤال واضحًا. في وضع الطالب: ساعده على التفكير والفهم، ولا تعطِ إجابة واجب جاهزة دون شرح؛ يمكنك كشف النتيجة النهائية بعد بناء خطوات الحل إذا طلبها بوضوح. في وضع المعلم: يمكنك إنشاء أسئلة متنوعة، أنشطة، خطط علاجية، شرح دروس، وتحليل أخطاء الطلاب. استخدم مستوى الصف ${profile?.grade??'غير محدد'} عندما يكون مناسبًا. المستخدم: ${profile?.full_name??'مستخدم أثر'}، الدور: ${profile?.role??mode}.${analyticsText}`;
- const key=process.env.OPENAI_API_KEY;
+ const key=process.env.OPENROUTER_API_KEY;
  if(!key){
-  return NextResponse.json({configured:false,reply:mode==='teacher'&&analytics?`⚠️ المساعد الذكي الكامل غير مُفعّل على نسخة الإنتاج حاليًا.\n\nتحليل احتياطي لبياناتك:\n• المحاولات: ${analytics.metrics?.attempts??0}\n• متوسط الدرجات: ${analytics.metrics?.average_percent??0}%\n• نسبة النجاح: ${analytics.metrics?.pass_rate??0}%\n• الطلاب الذين يحتاجون دعمًا: ${analytics.support_students?.length??0}\n\n🎯 اقتراح عملي: ابدأ بالسؤال الأعلى في نسبة الخطأ، ثم نفّذ نشاطًا علاجيًا قصيرًا، وبعده اختبار تحقق من 3–5 أسئلة.`:`⚠️ المساعد الذكي الكامل غير مُفعّل على نسخة الإنتاج حاليًا.\n\nالواجهة تعمل، لكن لا يوجد مفتاح OpenAI متاح للخادم؛ لذلك لن أتظاهر بأن هذا رد من نموذج الذكاء الاصطناعي. بعد تفعيل المفتاح سيصبح بإمكاني فهم المحادثة كاملة والرد على أسئلتك فعليًا.`,});
+  return NextResponse.json({configured:false,reply:mode==='teacher'&&analytics?`⚠️ المساعد الذكي الكامل غير مُفعّل على نسخة الإنتاج حاليًا.\n\nتحليل احتياطي لبياناتك:\n• المحاولات: ${analytics.metrics?.attempts??0}\n• متوسط الدرجات: ${analytics.metrics?.average_percent??0}%\n• نسبة النجاح: ${analytics.metrics?.pass_rate??0}%\n• الطلاب الذين يحتاجون دعمًا: ${analytics.support_students?.length??0}\n\n🎯 اقتراح عملي: ابدأ بالسؤال الأعلى في نسبة الخطأ، ثم نفّذ نشاطًا علاجيًا قصيرًا، وبعده اختبار تحقق من 3–5 أسئلة.`:`⚠️ المساعد الذكي الكامل غير مُفعّل على نسخة الإنتاج حاليًا.\n\nالواجهة تعمل، لكن لا يوجد مفتاح OpenRouter متاح للخادم. أضف OPENROUTER_API_KEY من إعدادات البيئة لتفعيل DeepSeek المجاني.`,});
  }
  try{
-  const input=[...history.filter((m)=>m.text!==message).map((m)=>({role:m.role as 'user'|'assistant',content:[{type:(m.role==='assistant'?'output_text':'input_text') as 'output_text'|'input_text',text:m.text}]})),{role:'user' as const,content:[{type:'input_text' as const,text:message}]}];
-  const r=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${key}`},body:JSON.stringify({model:process.env.OPENAI_MODEL||'gpt-5-mini',instructions:system,input})});
+  const messages=[{role:'system' as const,content:system},...history.filter((m)=>m.text!==message).map((m)=>({role:m.role as 'user'|'assistant',content:m.text})),{role:'user' as const,content:message}];
+  const r=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${key}`,'HTTP-Referer':process.env.NEXT_PUBLIC_SITE_URL||'https://ather-ar.vercel.app','X-Title':'أثر - مساعد تعليمي'},body:JSON.stringify({model:process.env.OPENROUTER_MODEL||'deepseek/deepseek-v4-flash:free',messages,temperature:0.4,max_tokens:1200})});
   const data=await r.json();
-  if(!r.ok)throw new Error(data?.error?.message||'AI request failed');
-  const reply=data.output_text||data.output?.flatMap((x:any)=>x.content??[]).map((x:any)=>x.text??'').join('')||'لم أتمكن من صياغة رد الآن.';
-  return NextResponse.json({reply,configured:true});
+  if(!r.ok)throw new Error(data?.error?.message||'OpenRouter AI request failed');
+  const reply=data?.choices?.[0]?.message?.content||'لم أتمكن من صياغة رد الآن.';
+  return NextResponse.json({reply,configured:true,provider:'openrouter',model:process.env.OPENROUTER_MODEL||'deepseek/deepseek-v4-flash:free'});
  }catch(error){
   console.error('AI assistant error',error);
-  return NextResponse.json({error:'تعذر الاتصال بالمساعد الذكي الآن. تحقق من إعدادات نموذج الذكاء الاصطناعي ثم حاول مرة أخرى.',configured:true},{status:502});
+  return NextResponse.json({error:'تعذر الاتصال بمساعد DeepSeek المجاني الآن. قد يكون حد الاستخدام المجاني قد انتهى مؤقتًا؛ حاول مرة أخرى لاحقًا.',configured:true},{status:502});
  }
 }
