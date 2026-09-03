@@ -1,0 +1,12 @@
+"use client";
+import { useEffect,useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import BackButton from '@/components/back-button';
+
+type Notification={id:string;title:string;message:string;type:string;is_read:boolean;created_at:string};
+export default function NotificationsPage(){const supabase=createClient();const[items,setItems]=useState<Notification[]>([]);const[loading,setLoading]=useState(true);
+ useEffect(()=>{(async()=>{const{data:{user}}=await supabase.auth.getUser();if(!user){setLoading(false);return}const{data}=await supabase.from('notifications').select('id,title,message,type,is_read,created_at').eq('user_id',user.id).order('created_at',{ascending:false}).limit(100);setItems((data??[]) as Notification[]);setLoading(false)})()},[]);
+ async function read(id:string){await supabase.from('notifications').update({is_read:true}).eq('id',id);setItems(a=>a.map(n=>n.id===id?{...n,is_read:true}:n))}
+ async function readAll(){const{data:{user}}=await supabase.auth.getUser();if(user)await supabase.from('notifications').update({is_read:true}).eq('user_id',user.id).eq('is_read',false);setItems(a=>a.map(n=>({...n,is_read:true})))}
+ return <div className="min-h-screen bg-paper"><div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-10"><div className="mb-4"><BackButton/></div><div className="flex items-center justify-between gap-3 mb-7"><div><h1 className="font-display text-2xl font-medium text-ink">الإشعارات 🔔</h1><p className="text-sm text-ink-soft mt-1">نتائجك وتنبيهاتك المهمة في مكان واحد.</p></div><button onClick={readAll} className="text-xs border border-line rounded-md px-3 py-2">تحديد الكل كمقروء</button></div><div className="space-y-2">{loading?<p className="text-sm text-ink-faint">جاري التحميل…</p>:items.map(n=><button key={n.id} onClick={()=>!n.is_read&&read(n.id)} className={`w-full text-right p-4 rounded-xl border ${n.is_read?'bg-surface border-line':'bg-green-light border-green/20'}`}><div className="flex gap-3"><span className="text-xl">{n.type==='success'?'🎉':'🔔'}</span><span className="flex-1"><strong className="block text-sm text-ink">{n.title}</strong><span className="block text-sm text-ink-soft mt-1">{n.message}</span><small className="block text-xs text-ink-faint mt-2">{new Date(n.created_at).toLocaleString('ar-EG')}</small></span></div></button>)}{!loading&&items.length===0&&<p className="p-8 text-center text-sm text-ink-faint bg-surface border border-line rounded-xl">لا توجد إشعارات.</p>}</div></div></div>;
+}
