@@ -24,7 +24,7 @@ export async function POST(req:Request){
   return NextResponse.json({configured:false,reply:mode==='teacher'&&analytics?`⚠️ المساعد الذكي الكامل غير مُفعّل على نسخة الإنتاج حاليًا.\n\nتحليل احتياطي لبياناتك:\n• المحاولات: ${analytics.metrics?.attempts??0}\n• متوسط الدرجات: ${analytics.metrics?.average_percent??0}%\n• نسبة النجاح: ${analytics.metrics?.pass_rate??0}%\n• الطلاب الذين يحتاجون دعمًا: ${analytics.support_students?.length??0}\n\n🎯 اقتراح عملي: ابدأ بالسؤال الأعلى في نسبة الخطأ، ثم نفّذ نشاطًا علاجيًا قصيرًا، وبعده اختبار تحقق من 3–5 أسئلة.`:`⚠️ المساعد الذكي الكامل غير مُفعّل على نسخة الإنتاج حاليًا.\n\nالواجهة تعمل، لكن لا يوجد مفتاح OpenAI متاح للخادم؛ لذلك لن أتظاهر بأن هذا رد من نموذج الذكاء الاصطناعي. بعد تفعيل المفتاح سيصبح بإمكاني فهم المحادثة كاملة والرد على أسئلتك فعليًا.`,});
  }
  try{
-  const input=[...history.filter((m)=>m.text!==message).map((m)=>({role:m.role,content:[{type:'input_text' as const,text:m.text}]})),{role:'user' as const,content:[{type:'input_text' as const,text:message}]}];
+  const input=[...history.filter((m)=>m.text!==message).map((m)=>({role:m.role as 'user'|'assistant',content:[{type:(m.role==='assistant'?'output_text':'input_text') as 'output_text'|'input_text',text:m.text}]})),{role:'user' as const,content:[{type:'input_text' as const,text:message}]}];
   const r=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${key}`},body:JSON.stringify({model:process.env.OPENAI_MODEL||'gpt-5-mini',instructions:system,input})});
   const data=await r.json();
   if(!r.ok)throw new Error(data?.error?.message||'AI request failed');
