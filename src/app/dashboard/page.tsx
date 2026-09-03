@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import LogoutButton from "./logout-button";
 import LanguageToggle from "@/components/language-toggle";
 import { isKidsGrade } from "@/lib/kids-mode";
@@ -8,13 +9,20 @@ import { translate } from "@/lib/i18n/dictionary";
 
 export default async function DashboardPage(){
   const supabase=await createClient();
+  const adminClient=createAdminClient();
   const lang=await getLang();
   const t=(key:Parameters<typeof translate>[0])=>translate(key,lang);
   const{data:{user}}=await supabase.auth.getUser();
   if(!user)redirect('/login');
-  const{data:profile}=await supabase.from('profiles').select('full_name,role,grade,onboarding_completed').eq('id',user.id).single();
-  if(profile?.onboarding_completed===false&&profile?.role!=='admin')redirect('/onboarding');
+
+  // Read the role with the server-only client so an RLS/profile-query issue
+  // can never silently turn an admin into the generic student dashboard.
+  const{data:profile}=await adminClient.from('profiles').select('full_name,role,grade,onboarding_completed,is_active').eq('id',user.id).single();
+  if(profile?.is_active===false)redirect('/login?disabled=1');
+  if(profile?.role==='admin')redirect('/dashboard/admin');
+  if(profile?.onboarding_completed===false)redirect('/onboarding');
   if(profile?.role==='teacher')redirect('/dashboard/teacher');
+
   const roleLabelKey:Record<string,Parameters<typeof translate>[0]>={student:'student',teacher:'teacher',parent:'parent',admin:'admin'};
   const kidsMode=profile?.role==='student'&&isKidsGrade(profile?.grade);
   const[{count:attemptCount},{count:unreadCount},{data:gamification}]=await Promise.all([
