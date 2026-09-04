@@ -15,11 +15,8 @@ export default async function DashboardPage(){
   const{data:{user}}=await supabase.auth.getUser();
   if(!user)redirect('/login');
 
-  // Keep /dashboard as the shared dashboard. The dedicated admin dashboard
-  // remains available at /dashboard/admin instead of replacing this page.
   const{data:profile}=await adminClient.from('profiles').select('full_name,role,grade,onboarding_completed,is_active').eq('id',user.id).single();
   if(profile?.is_active===false)redirect('/login?disabled=1');
-  if(profile?.onboarding_completed===false)redirect('/onboarding');
   if(profile?.role==='teacher')redirect('/dashboard/teacher');
 
   const roleLabelKey:Record<string,Parameters<typeof translate>[0]>={student:'student',teacher:'teacher',parent:'parent',admin:'admin'};
