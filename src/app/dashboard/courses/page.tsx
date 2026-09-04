@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import Link from "link";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import BackButton from "@/components/back-button";
 
