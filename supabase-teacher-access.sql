@@ -21,3 +21,6 @@ create policy "admins and teachers manage quizzes" on public.quizzes for all
 create policy "admins and teachers manage questions" on public.quiz_questions for all
   using (exists (select 1 from public.profiles where id = auth.uid() and role in ('admin', 'teacher')))
   with check (exists (select 1 from public.profiles where id = auth.uid() and role in ('admin', 'teacher')));
+
+-- The policies may call this SECURITY DEFINER helper, so authenticated users need EXECUTE.
+grant execute on function public.is_admin_or_teacher() to authenticated;
