@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import BackButton from "@/components/back-button";
 
+type Student = { id: string; full_name: string; grade: string | null };
 type AttemptRow = {
   quiz_id: string;
   score: number;
@@ -19,17 +20,30 @@ export default async function ParentPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await adminClient.from("profiles").select("role, full_name").eq("id", user.id).single();
+  const { data: profile } = await adminClient
+    .from("profiles")
+    .select("role, full_name")
+    .eq("id", user.id)
+    .single();
   if (profile?.role !== "parent") redirect("/dashboard");
 
+  // Read the link rows first. parent_student has two FKs to profiles,
+  // so a generic nested `profiles(...)` relation is ambiguous in PostgREST.
   const { data: links } = await adminClient
     .from("parent_student")
-    .select("student_id, profiles(id, full_name, grade)")
+    .select("student_id")
     .eq("parent_id", user.id);
 
-  const students = (links ?? [])
-    .map((l) => l.profiles as unknown as { id: string; full_name: string; grade: string | null } | null)
-    .filter((s): s is { id: string; full_name: string; grade: string | null } => !!s);
+  const studentIds = Array.from(new Set((links ?? []).map((l) => l.student_id).filter(Boolean)));
+  let students: Student[] = [];
+  if (studentIds.length) {
+    const { data: profiles } = await adminClient
+      .from("profiles")
+      .select("id, full_name, grade")
+      .in("id", studentIds)
+      .eq("role", "student");
+    students = (profiles ?? []) as Student[];
+  }
 
   const studentData = await Promise.all(students.map(async (student) => {
     const { data: attempts } = await adminClient
