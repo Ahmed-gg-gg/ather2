@@ -44,8 +44,6 @@ export async function POST(request: Request) {
   const errors: string[] = [];
   const createdIds: string[] = [];
 
-  // Create in small parallel chunks so 50–1000 accounts do not take excessively long
-  // while avoiding an unbounded burst against Supabase Auth.
   const jobs = Array.from({ length: count }, (_, index) => index + 1);
   const chunkSize = 20;
   for (let start = 0; start < jobs.length; start += chunkSize) {
@@ -73,7 +71,7 @@ export async function POST(request: Request) {
       credentials.push({ name, email, password });
       const { error: profileError } = await admin
         .from("profiles")
-        .update({ onboarding_completed: false, grade })
+        .update({ onboarding_completed: true, grade })
         .eq("id", data.user.id);
       if (profileError) errors.push(`${email}: تعذر تحديث بيانات الطالب`);
     }
