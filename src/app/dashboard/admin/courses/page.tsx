@@ -1,30 +1,30 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import NewCourseForm from "./new-course-form";
 import DeleteCourseButton from "./delete-course-button";
 import BackButton from "@/components/back-button";
 
 export default async function AdminCoursesPage() {
   const supabase = await createClient();
+  const adminClient = createAdminClient();
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
+  const { data: profile } = await adminClient
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
   if (!["admin", "teacher"].includes(profile?.role ?? "")) redirect("/dashboard");
 
-  const { data: courses } = await supabase
+  const { data: courses } = await adminClient
     .from("courses")
-    .select(
-      "id, title, description, grade, school_type, subjects(name)"
-    )
+    .select("id, title, description, grade, school_type, subjects(name)")
     .order("created_at", { ascending: false });
 
   return (
