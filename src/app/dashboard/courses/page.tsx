@@ -1,7 +1,29 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
+import Link from "link";
 import { createClient } from "@/lib/supabase/server";
 import BackButton from "@/components/back-button";
+
+const GRADE_ALIASES: Record<string, string> = {
+  "الأول الابتدائي": "Grade 1",
+  "الثاني الابتدائي": "Grade 2",
+  "الثالث الابتدائي": "Grade 3",
+  "الرابع الابتدائي": "Grade 4",
+  "الخامس الابتدائي": "Grade 5",
+  "السادس الابتدائي": "Grade 6",
+  "الأول الإعدادي": "Grade 7",
+  "الثاني الإعدادي": "Grade 8",
+  "الثالث الإعدادي": "Grade 9",
+  "الأول الثانوي": "Grade 10",
+  "الثاني الثانوي": "Grade 11",
+  "الثالث الثانوي": "Grade 12",
+};
+
+function gradeVariants(grade: string | null | undefined) {
+  if (!grade) return [];
+  const arabic = Object.entries(GRADE_ALIASES).find(([, english]) => english === grade)?.[0];
+  const english = GRADE_ALIASES[grade];
+  return Array.from(new Set([grade, arabic, english].filter(Boolean))) as string[];
+}
 
 export default async function CoursesPage() {
   const supabase = await createClient();
@@ -23,10 +45,14 @@ export default async function CoursesPage() {
     .order("created_at", { ascending: false });
 
   // Students only see courses matching their grade (plus ungraded/public ones).
+  // Older student accounts may store grades as "Grade 4", while course creation
+  // uses the Arabic labels from GRADES, so accept both representations.
   if (profile?.role === "student") {
-    query = query.or(
-      `grade.is.null${profile.grade ? `,grade.eq.${profile.grade}` : ""}`
-    );
+    const variants = gradeVariants(profile.grade);
+    const gradeFilter = variants.length
+      ? `grade.is.null,${variants.map((value) => `grade.eq.${value}`).join(",")}`
+      : "grade.is.null";
+    query = query.or(gradeFilter);
   }
 
   const { data: courses } = await query;
