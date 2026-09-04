@@ -9,6 +9,12 @@ function generatePassword() {
   return Array.from(bytes, (value) => chars[value % chars.length]).join("");
 }
 
+function generateBatchKey() {
+  const bytes = new Uint32Array(2);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (value) => value.toString(36)).join("").slice(0, 8);
+}
+
 function slugPart(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, ".").replace(/^\.|\.$/g, "") || "student";
 }
@@ -43,6 +49,13 @@ export async function POST(request: Request) {
   const credentials: { name: string; email: string; password: string }[] = [];
   const errors: string[] = [];
   const createdIds: string[] = [];
+  const batchKey = generateBatchKey();
+  const gradeNumber = Math.max(1, [
+    "الأول الابتدائي", "الثاني الابتدائي", "الثالث الابتدائي", "الرابع الابتدائي", "الخامس الابتدائي", "السادس الابتدائي",
+    "الأول الإعدادي", "الثاني الإعدادي", "الثالث الإعدادي", "الأول الثانوي", "الثاني الثانوي", "الثالث الثانوي",
+  ].indexOf(grade) + 1);
+  const classMatch = groupName.match(/الفصل\s+([A-F])$/i);
+  const classPart = classMatch?.[1]?.toLowerCase() || "x";
   const jobs = Array.from({ length: count }, (_, index) => index + 1);
   const chunkSize = 20;
 
@@ -50,7 +63,7 @@ export async function POST(request: Request) {
     const chunk = jobs.slice(start, start + chunkSize);
     const results = await Promise.all(chunk.map(async (i) => {
       const name = `${prefix} ${String(i).padStart(2, "0")}`;
-      const email = `${slugPart(prefix)}.${i}@${emailDomain}`;
+      const email = `${slugPart(prefix)}.g${gradeNumber}.${classPart}.${batchKey}.${String(i).padStart(3, "0")}@${emailDomain}`;
       const password = passwordMode === "same" ? sharedPassword : generatePassword();
       const { data, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { full_name: name, role: "student", grade } });
       return { name, email, password, data, error };
