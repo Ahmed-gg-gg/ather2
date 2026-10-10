@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import LogoutButton from "./logout-button";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function TeacherDashboard() {
@@ -35,7 +36,7 @@ export default async function TeacherDashboard() {
 
   return <main className="min-h-screen bg-paper">
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-7 sm:py-10">
-      <header className="rounded-2xl bg-surface border border-line p-5 sm:p-7 mb-6">
+      <header className="rounded-2xl bg-surface border border-line p-5 sm:p-7 mb-6"><div className="mb-4 flex justify-end"><LogoutButton /></div>
         <p className="text-sm text-green-text font-medium mb-2">أثر · مساحة المعلم</p>
         <h1 className="font-display text-2xl sm:text-3xl font-medium text-ink">أهلًا {profile?.full_name || "بك"} 👋</h1>
         <p className="text-sm text-ink-soft mt-2 max-w-2xl">كل ما تحتاجه في مكان واحد. ابدأ بإضافة طلابك، ثم أنشئ كورساتك وتابع تقدمهم بسهولة.</p>
