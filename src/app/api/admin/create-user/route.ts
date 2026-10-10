@@ -42,7 +42,7 @@ export async function POST(request: Request) {
   if (!allowedRoles.includes(role)) return NextResponse.json({ error: "المعلم يمكنه إضافة الطلاب وأولياء الأمور فقط." }, { status: 403 });
 
   const finalPassword = password ?? generatePassword();
-  const baseEmail = suppliedEmail || `${emailSlug(fullName)}@ather.local`;
+  const baseEmail = suppliedEmail || `${emailSlug(fullName)}@athar.com`;
   const baseParts = baseEmail.split("@");
   const baseName = baseParts[0];
   const domain = baseParts[1];
