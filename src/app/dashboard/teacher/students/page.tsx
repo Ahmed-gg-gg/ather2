@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import BackButton from "@/components/back-button";
+import AddStudentForm from "./add-student-form";
 
 export default async function TeacherStudentsPage() {
   const supabase = await createClient();
@@ -23,6 +24,7 @@ export default async function TeacherStudentsPage() {
       <div><h1 className="font-display text-2xl font-medium text-ink">إدارة طلابي 👥</h1><p className="text-sm text-ink-soft mt-1">هذه القائمة تعرض الطلاب المرتبطين بحسابك فقط.</p></div>
       <Link href="/dashboard/admin/courses" className="bg-green text-white rounded-md px-4 py-2 text-sm">إدارة كورساتي 📚</Link>
     </div>
+    <AddStudentForm />
     <div className="bg-surface border border-line rounded-xl overflow-hidden">
       <div className="px-5 py-4 border-b border-line text-sm text-ink-soft">عدد الطلاب المرتبطين بك: <strong className="text-ink">{students?.length ?? 0}</strong></div>
       {(students ?? []).map((student) => <div key={student.id} className="px-5 py-4 border-b border-line last:border-0 flex items-center justify-between gap-3">
