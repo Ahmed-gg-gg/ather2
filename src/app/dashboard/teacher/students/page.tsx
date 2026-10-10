@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import BackButton from "@/components/back-button";
 import AddStudentForm from "./add-student-form";
+import RemoveStudentButton from "./remove-student-button";
 
 export default async function TeacherStudentsPage() {
   const supabase = await createClient();
@@ -29,7 +30,7 @@ export default async function TeacherStudentsPage() {
       <div className="px-5 py-4 border-b border-line text-sm text-ink-soft">عدد الطلاب المرتبطين بك: <strong className="text-ink">{students?.length ?? 0}</strong></div>
       {(students ?? []).map((student) => <div key={student.id} className="px-5 py-4 border-b border-line last:border-0 flex items-center justify-between gap-3">
         <div><p className="text-sm font-medium text-ink">{student.full_name || "طالب بدون اسم"}</p><p className="text-xs text-ink-soft mt-1">{student.grade || "لم يتم تحديد الصف"}</p></div>
-        <span className={`text-xs rounded-full px-2.5 py-1 ${student.is_active === false ? "bg-red-50 text-red-600" : "bg-green-light text-green-text"}`}>{student.is_active === false ? "معطل" : "نشط"}</span>
+        <div className="flex items-center gap-3"><span className={`text-xs rounded-full px-2.5 py-1 ${student.is_active === false ? "bg-red-50 text-red-600" : "bg-green-light text-green-text"}`}>{student.is_active === false ? "معطل" : "نشط"}</span><RemoveStudentButton studentId={student.id} studentName={student.full_name || "الطالب"} /></div>
       </div>)}
       {(!students || students.length === 0) && <p className="p-6 text-sm text-ink-faint">لا يوجد طلاب مرتبطون بحسابك حتى الآن. اطلب من المدير ربط الطلاب بحسابك من صفحة المجموعات والفصول.</p>}
     </div>
