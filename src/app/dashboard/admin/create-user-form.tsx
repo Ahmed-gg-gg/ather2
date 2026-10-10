@@ -38,6 +38,18 @@ export default function CreateUserForm({
     email: string;
     password: string;
   } | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  async function copyCredentials() {
+    if (!created) return;
+    try {
+      await navigator.clipboard.writeText(`البريد: ${created.email}\\nكلمة المرور: ${created.password}`);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2200);
+    } catch {
+      setError("تعذر النسخ تلقائيًا. انسخ بيانات الدخول يدويًا.");
+    }
+  }
 
   function toggleStudent(id: string) {
     setStudentIds((ids) =>
@@ -205,6 +217,7 @@ export default function CreateUserForm({
           <p dir="ltr" className="text-ink font-mono text-xs">
             {created.password}
           </p>
+          <button type="button" onClick={copyCredentials} className={`mt-3 rounded-xl px-4 py-2.5 text-xs font-bold transition ${copied ? "bg-emerald-100 text-emerald-800" : "bg-green text-white hover:opacity-90"}`}>{copied ? "✓ تم النسخ بنجاح" : "📋 نسخ بيانات الدخول"}</button>
         </div>
       )}
     </div>
