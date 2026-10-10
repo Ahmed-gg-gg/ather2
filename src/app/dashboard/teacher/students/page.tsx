@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import BackButton from "@/components/back-button";
 import AddStudentForm from "./add-student-form";
 import RemoveStudentButton from "./remove-student-button";
+import LogoutButton from "../logout-button";
 
 export default async function TeacherStudentsPage() {
   const supabase = await createClient();
@@ -21,7 +22,7 @@ export default async function TeacherStudentsPage() {
 
   return <main className="min-h-screen bg-paper"><div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
     <div className="mb-4"><BackButton /></div>
-    <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+    <div className="flex flex-wrap items-center justify-between gap-3 mb-6"><LogoutButton />
       <div><h1 className="font-display text-2xl font-medium text-ink">إدارة طلابي 👥</h1><p className="text-sm text-ink-soft mt-1">هذه القائمة تعرض الطلاب المرتبطين بحسابك فقط.</p></div>
       <Link href="/dashboard/admin/courses" className="bg-green text-white rounded-md px-4 py-2 text-sm">إدارة كورساتي 📚</Link>
     </div>
