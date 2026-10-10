@@ -25,7 +25,6 @@ export default function CreateUserForm({
       : (["student", "parent"] as const);
 
   const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
   const [role, setRole] = useState<string>(availableRoles[0]);
   const [grade, setGrade] = useState(GRADES[0]);
   const [passwordMode, setPasswordMode] = useState<"random" | "manual">(
@@ -57,7 +56,6 @@ export default function CreateUserForm({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         fullName,
-        email,
         role,
         grade: role === "student" ? grade : null,
         password: passwordMode === "manual" ? manualPassword : null,
@@ -75,7 +73,6 @@ export default function CreateUserForm({
 
     setCreated({ email: data.email, password: data.password });
     setFullName("");
-    setEmail("");
     setManualPassword("");
     setStudentIds([]);
   }
@@ -90,15 +87,9 @@ export default function CreateUserForm({
           onChange={(e) => setFullName(e.target.value)}
           required
         />
-        <input
-          type="email"
-          className="w-full px-3 py-2.5 border border-line rounded-md bg-paper text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:border-green text-left"
-          dir="ltr"
-          placeholder="name@school.edu"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
+        <div className="rounded-md bg-paper border border-line px-3 py-3 text-sm text-ink-soft">
+          ✉️ البريد الإلكتروني هيتولد تلقائيًا من الاسم، ولو الاسم مستخدم هنضيف رقم.
+        </div>
         <select
           className="w-full px-3 py-2.5 border border-line rounded-md bg-paper text-sm text-ink focus:outline-none focus:border-green"
           value={role}
