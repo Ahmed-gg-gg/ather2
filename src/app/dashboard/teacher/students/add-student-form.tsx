@@ -11,6 +11,18 @@ export default function AddStudentForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [created, setCreated] = useState<{ email: string; password: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  async function copyCredentials() {
+    if (!created) return;
+    try {
+      await navigator.clipboard.writeText(`البريد: ${created.email}\\nكلمة المرور: ${created.password}`);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2200);
+    } catch {
+      setError("تعذر النسخ تلقائيًا. انسخ بيانات الدخول يدويًا.");
+    }
+  }
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
