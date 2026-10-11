@@ -15,14 +15,21 @@ export async function POST(req: Request) {
  const body = await req.json().catch(() => ({}));
  const message = String(body.message ?? '').trim();
  const history: ChatMessage[] = Array.isArray(body.history) ? body.history.filter((m: any) => m && ['user','assistant'].includes(m.role) && typeof m.text === 'string').slice(-12) : [];
- if (!message) return NextResponse.json({ error: 'اكتب سؤالك أولًا' }, { status: 400 });
-
  const cookieStore = await cookies();
  const powerCode = process.env.AI_POWER_CODE;
  const isPowerMode = !!powerCode && cookieStore.get('ather_power_ai')?.value === powerCode;
- if (powerCode && message === powerCode) {
+
+ // The phrase only starts the password flow; it never activates power mode by itself.
+ if (String(body.action ?? '') === 'activate_power') {
+  const suppliedPassword = String(body.password ?? '');
+  if (!powerCode) return NextResponse.json({ reply: '⚠️ رمز التفعيل غير مضبوط في إعدادات الخادم.', configured: false, powerMode: false });
+  if (suppliedPassword !== powerCode) return NextResponse.json({ reply: '❌ كلمة المرور غير صحيحة. وضع القوة القصوى لم يتم تفعيله؛ حاول مرة أخرى.', configured: true, passwordRequired: true, powerMode: false });
   cookieStore.set('ather_power_ai', powerCode, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/', maxAge: 60 * 60 * 8 });
   return NextResponse.json({ reply: '🚀 تم تفعيل وضع القوة القصوى للذكاء الاصطناعي لمدة 8 ساعات. رسائلك التالية ستستخدم Agent Router.', configured: true, activated: true, powerMode: true });
+ }
+ if (!message) return NextResponse.json({ error: 'اكتب سؤالك أولًا' }, { status: 400 });
+ if (/^ai\\s*power$/i.test(message)) {
+  return NextResponse.json({ reply: '🔐 أدخل كلمة المرور لتفعيل وضع القوة القصوى. لن يتم تفعيل الوضع أو استخدام رصيد Agent Router قبل التحقق منها.', configured: true, passwordRequired: true, powerMode: isPowerMode });
  }
  if (message === 'إيقاف القوة القصوى') {
   cookieStore.delete('ather_power_ai');
