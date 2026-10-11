@@ -50,8 +50,23 @@ export async function POST(req: Request) {
  try {
   const messages = [{ role: 'system' as const, content: system }, ...history.filter(m => m.text !== message).map(m => ({ role: m.role as 'user'|'assistant', content: m.text })), { role: 'user' as const, content: message }];
   const r = await fetch(isPowerMode ? 'https://agentrouter.org/v1/chat/completions' : 'https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, 'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://ather-ar.vercel.app', 'X-Title': 'Ather Educational Assistant' }, body: JSON.stringify({ model, messages, temperature: 0.4, max_tokens: 1600 }) });
-  const data = await r.json();
-  if (!r.ok) throw new Error(data?.error?.message || 'OpenRouter AI request failed');
+  const rawResponse = await r.text();
+  let data: any = {};
+  try {
+   data = rawResponse ? JSON.parse(rawResponse) : {};
+  } catch {
+   console.error('AI provider returned non-JSON response', { provider, status: r.status, contentType: r.headers.get('content-type'), preview: rawResponse.slice(0, 180) });
+   return NextResponse.json({ error: isPowerMode
+    ? `Agent Router رجّع صفحة غير متوقعة (HTTP ${r.status}). راجع رابط API أو سجّل الأخطاء.`
+    : `OpenRouter رجّع استجابة غير متوقعة (HTTP ${r.status}).`, configured: true, powerMode: isPowerMode, providerStatus: r.status }, { status: 502 });
+  }
+  if (!r.ok) {
+   const providerMessage = String(data?.error?.message || data?.message || `HTTP ${r.status}`).slice(0, 240);
+   console.error('AI provider HTTP error', { provider, status: r.status, message: providerMessage });
+   return NextResponse.json({ error: isPowerMode
+    ? `فشل Agent Router (HTTP ${r.status}): ${providerMessage}`
+    : `فشل OpenRouter (HTTP ${r.status}): ${providerMessage}`, configured: true, powerMode: isPowerMode, providerStatus: r.status }, { status: 502 });
+  }
   return NextResponse.json({ reply: data?.choices?.[0]?.message?.content || 'لم أتمكن من صياغة رد الآن.', configured: true, provider, powerMode: isPowerMode, model: data?.model || model });
  } catch (error) {
   console.error('AI assistant error', error);
