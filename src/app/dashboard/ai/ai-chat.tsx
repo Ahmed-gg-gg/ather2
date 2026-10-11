@@ -48,6 +48,7 @@ export default function AIChat({ role }: { role: Role }) {
  const [input, setInput] = useState('');
  const [loading, setLoading] = useState(false);
  const [configured, setConfigured] = useState<boolean | null>(null);
+ const [powerMode, setPowerMode] = useState(false);
  const meta = config[role];
 
  async function send(prefill?: string) {
@@ -59,13 +60,16 @@ export default function AIChat({ role }: { role: Role }) {
    const r = await fetch('/api/ai-assistant', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text, history: next.slice(-12) }) });
    const d = await r.json();
    setConfigured(typeof d.configured === 'boolean' ? d.configured : null);
+   if (typeof d.powerMode === 'boolean') setPowerMode(d.powerMode);
+   if (d.activated) setPowerMode(true);
+   if (d.deactivated) setPowerMode(false);
    setMessages(m => [...m, { role: 'assistant', text: d.reply || d.error || 'حدث خطأ غير متوقع.' }]);
   } catch {
    setMessages(m => [...m, { role: 'assistant', text: 'تعذر الاتصال بالمساعد الآن. تحقق من اتصال الإنترنت ثم حاول مرة أخرى.' }]);
   } finally { setLoading(false); }
  }
 
- return <div className="min-h-screen bg-paper"><div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-10"><div className="mb-4"><BackButton /></div><div className="mb-5"><h1 className="font-display text-2xl font-medium text-ink">{meta.title}</h1><p className="text-sm text-ink-soft mt-1">{meta.subtitle}</p></div>
+ return <div className="min-h-screen bg-paper"><div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-10"><div className="mb-4"><BackButton /></div><div className="mb-5"><h1 className="font-display text-2xl font-medium text-ink">{meta.title}</h1><p className="text-sm text-ink-soft mt-1">{meta.subtitle}</p>{powerMode && <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-violet-300 bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-800">⚡ وضع القوة القصوى مفعّل عبر Agent Router <button onClick={() => void send('إيقاف القوة القصوى')} className="underline">إيقاف</button></div>}</div>
  {configured === false && <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">⚠️ المساعد الذكي الكامل غير مُفعّل حاليًا على نسخة الإنتاج.</div>}
- <div className="bg-surface border border-line rounded-2xl p-4 min-h-[520px] flex flex-col"><div className="mb-4"><div className="text-xs font-semibold text-ink-soft mb-2">اقتراحات سريعة</div><div className="flex flex-wrap gap-2">{meta.prompts.map(p => <button key={p.label} onClick={() => void send(p.prompt)} disabled={loading} className="border border-line rounded-full px-3 py-2 text-xs bg-paper hover:bg-surface disabled:opacity-50">{p.label}</button>)}</div></div><div className="flex-1 space-y-3 overflow-auto">{messages.map((m, i) => <div key={i} className={`max-w-[90%] rounded-2xl px-4 py-3 text-sm whitespace-pre-wrap ${m.role === 'user' ? 'mr-auto bg-green text-white' : 'ml-auto bg-paper border border-line text-ink'}`}>{m.text}</div>)}{loading && <div className="ml-auto bg-paper border border-line rounded-2xl px-4 py-3 text-sm text-ink-faint">أفكر في أفضل مساعدة…</div>}</div><div className="flex gap-2 mt-4"><input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void send(); }} placeholder={role === 'admin' ? 'اكتب مشكلة أو مهمة إدارية…' : role === 'teacher' ? 'اكتب مهمة أو سؤالًا تعليميًا…' : 'اكتب سؤالك أو المسألة التي تحتاج شرحها…'} className="flex-1 border border-line rounded-xl px-4 py-3 bg-paper text-sm"/><button onClick={() => void send()} disabled={loading || !input.trim()} className="bg-green text-white rounded-xl px-5 py-3 text-sm disabled:opacity-50">إرسال</button></div></div></div></div>;
+ <div className="bg-surface border border-line rounded-2xl p-4 min-h-[520px] flex flex-col"><div className="mb-4"><div className="text-xs font-semibold text-ink-soft mb-2">اقتراحات سريعة</div><div className="flex flex-wrap gap-2">{meta.prompts.map(p => <button key={p.label} onClick={() => void send(p.prompt)} disabled={loading} className="border border-line rounded-full px-3 py-2 text-xs bg-paper hover:bg-surface disabled:opacity-50">{p.label}</button>)}</div></div><div className="flex-1 space-y-3 overflow-auto">{messages.map((m, i) => <div key={i} className={`max-w-[90%] rounded-2xl px-4 py-3 text-sm whitespace-pre-wrap ${m.role === 'user' ? 'mr-auto bg-green text-white' : 'ml-auto bg-paper border border-line text-ink'}`}>{m.text}</div>)}{loading && <div className="ml-auto bg-paper border border-line rounded-2xl px-4 py-3 text-sm text-ink-faint">أفكر في أفضل مساعدة…</div>}</div><div className="flex gap-2 mt-4"><input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void send(); }} placeholder={role === 'admin' ? 'اكتب سؤالك… أو رمز تفعيل القوة القصوى' : role === 'teacher' ? 'اكتب مهمة أو سؤالًا تعليميًا…' : 'اكتب سؤالك أو المسألة التي تحتاج شرحها…'} className="flex-1 border border-line rounded-xl px-4 py-3 bg-paper text-sm"/><button onClick={() => void send()} disabled={loading || !input.trim()} className="bg-green text-white rounded-xl px-5 py-3 text-sm disabled:opacity-50">إرسال</button></div></div></div></div>;
 }
