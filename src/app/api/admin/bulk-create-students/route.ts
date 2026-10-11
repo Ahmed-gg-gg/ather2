@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   const groupName = String(body.groupName || "الرابع الابتدائي - الفصل A").trim();
   const teacherId = body.teacherId ? String(body.teacherId) : null;
   const prefix = String(body.namePrefix || "طالب الصف الرابع").trim();
-  const emailDomain = String(body.emailDomain || "ather.local").trim().toLowerCase();
+  const emailDomain = String(body.emailDomain || "athar.com").trim().toLowerCase();
   const passwordMode = body.passwordMode === "same" ? "same" : "random";
   const sharedPassword = String(body.password || "");
 
