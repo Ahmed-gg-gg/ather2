@@ -32,7 +32,7 @@ export default async function AdminCourseDetailPage({
 
   const { data: lessons } = await supabase
     .from("lessons")
-    .select("id, title, video_url, position, quizzes(id, title)")
+    .select("id, title, video_url, position, quizzes(id, title, delivery_type, external_url)")
     .eq("course_id", id)
     .order("position", { ascending: true });
 
@@ -90,10 +90,10 @@ export default async function AdminCourseDetailPage({
               {lesson.quizzes && lesson.quizzes.length > 0 ? (
                 <div>
                   <span className="text-xs bg-green-light text-green-text px-2.5 py-1 rounded-full">
-                    فيه كويز: {lesson.quizzes[0].title}
+                    {lesson.quizzes[0].delivery_type === 'microsoft_forms' ? 'Microsoft Forms: ' : 'فيه كويز: '}{lesson.quizzes[0].title}
                   </span>
 
-                  <div className="mt-3 border-t border-line pt-3">
+                  {lesson.quizzes[0].delivery_type === 'microsoft_forms' && lesson.quizzes[0].external_url && <a href={lesson.quizzes[0].external_url} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-sm font-semibold text-blue-700 underline">فتح رابط الفورم ↗</a>} {lesson.quizzes[0].delivery_type !== 'microsoft_forms' && <div className="mt-3 border-t border-line pt-3">
                     <p className="text-xs font-medium text-ink-soft mb-2">
                       نتائج الطلاب
                     </p>
@@ -122,7 +122,7 @@ export default async function AdminCourseDetailPage({
                         )}
                       </div>
                     )}
-                  </div>
+                  </div>}
                 </div>
               ) : (
                 <NewQuizForm lessonId={lesson.id} />
