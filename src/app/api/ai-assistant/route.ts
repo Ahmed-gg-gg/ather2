@@ -28,7 +28,7 @@ export async function POST(req: Request) {
   return NextResponse.json({ reply: '🚀 تم تفعيل وضع القوة القصوى للذكاء الاصطناعي لمدة 8 ساعات. رسائلك التالية ستستخدم Agent Router.', configured: true, activated: true, powerMode: true });
  }
  if (!message) return NextResponse.json({ error: 'اكتب سؤالك أولًا' }, { status: 400 });
- if (/^ai\\s*power$/i.test(message)) {
+ if (/^ai\s*power$/i.test(message)) {
   return NextResponse.json({ reply: '🔐 أدخل كلمة المرور لتفعيل وضع القوة القصوى. لن يتم تفعيل الوضع أو استخدام رصيد Agent Router قبل التحقق منها.', configured: true, passwordRequired: true, powerMode: isPowerMode });
  }
  if (message === 'إيقاف القوة القصوى') {
