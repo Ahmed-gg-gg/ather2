@@ -8,7 +8,7 @@ type Teacher={id:string;full_name:string;grade:string|null};
 const CLASSES=["A","B","C","D","E","F"];
 
 export default function BulkStudentsPage(){
- const[count,setCount]=useState(50),[grade,setGrade]=useState(GRADES[3]),[className,setClassName]=useState("A"),[teacherId,setTeacherId]=useState(""),[teachers,setTeachers]=useState<Teacher[]>([]),[prefix,setPrefix]=useState("طالب الصف الرابع"),[emailDomain,setEmailDomain]=useState("ather.local");
+ const[count,setCount]=useState(50),[grade,setGrade]=useState(GRADES[3]),[className,setClassName]=useState("A"),[teacherId,setTeacherId]=useState(""),[teachers,setTeachers]=useState<Teacher[]>([]),[prefix,setPrefix]=useState("طالب الصف الرابع"),[emailDomain,setEmailDomain]=useState("athar.com");
  const[passwordMode,setPasswordMode]=useState<"random"|"same">("random"),[password,setPassword]=useState(""),[loading,setLoading]=useState(false),[message,setMessage]=useState<string|null>(null),[credentials,setCredentials]=useState<Credential[]>([]);
  const gradeNumber=useMemo(()=>GRADES.indexOf(grade)+1,[grade]);
  useEffect(()=>{void fetch("/api/admin/teachers").then(r=>r.ok?r.json():{teachers:[]}).then(d=>setTeachers(d.teachers??[])).catch(()=>setTeachers([]))},[]);
