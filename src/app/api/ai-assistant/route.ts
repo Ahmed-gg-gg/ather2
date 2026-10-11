@@ -49,7 +49,7 @@ export async function POST(req: Request) {
  if (isPowerMode && !model) return NextResponse.json({ configured: false, powerMode: true, reply: '⚠️ أضف AGENTROUTER_MODEL في إعدادات الخادم باسم موديل متاح لحسابك.' });
  try {
   const messages = [{ role: 'system' as const, content: system }, ...history.filter(m => m.text !== message).map(m => ({ role: m.role as 'user'|'assistant', content: m.text })), { role: 'user' as const, content: message }];
-  const r = await fetch(isPowerMode ? 'https://agentrouter.org/v1/chat/completions' : 'https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, 'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://ather-ar.vercel.app', 'X-Title': 'Ather Educational Assistant' }, body: JSON.stringify({ model, messages, temperature: 0.4, max_tokens: 1600 }) });
+  const r = await fetch(isPowerMode ? 'https://co.agentrouter.org/v1/chat/completions' : 'https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, 'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://ather-ar.vercel.app', 'X-Title': 'Ather Educational Assistant' }, body: JSON.stringify({ model, messages, temperature: 0.4, max_tokens: 1600 }) });
   const rawResponse = await r.text();
   let data: any = {};
   try {
