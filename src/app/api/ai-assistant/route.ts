@@ -49,25 +49,56 @@ export async function POST(req: Request) {
  if (isPowerMode && !model) return NextResponse.json({ configured: false, powerMode: true, reply: '⚠️ أضف AGENTROUTER_MODEL في إعدادات الخادم باسم موديل متاح لحسابك.' });
  try {
   const messages = [{ role: 'system' as const, content: system }, ...history.filter(m => m.text !== message).map(m => ({ role: m.role as 'user'|'assistant', content: m.text })), { role: 'user' as const, content: message }];
-  const r = await fetch(isPowerMode ? 'https://co.agentrouter.org/v1/chat/completions' : 'https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, 'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://ather-ar.vercel.app', 'X-Title': 'Ather Educational Assistant' }, body: JSON.stringify({ model, messages, temperature: 0.4, max_tokens: 1600 }) });
-  const rawResponse = await r.text();
-  let data: any = {};
-  try {
-   data = rawResponse ? JSON.parse(rawResponse) : {};
-  } catch {
-   console.error('AI provider returned non-JSON response', { provider, status: r.status, contentType: r.headers.get('content-type'), preview: rawResponse.slice(0, 180) });
+  const apiUrl = isPowerMode ? 'https://co.agentrouter.org/v1/chat/completions' : 'https://openrouter.ai/api/v1/chat/completions';
+  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, 'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://ather-ar.vercel.app', 'X-Title': 'Ather Educational Assistant' };
+  const requestCompletion = async (selectedModel: string) => {
+   const response = await fetch(apiUrl, { method: 'POST', headers, body: JSON.stringify({ model: selectedModel, messages, temperature: 0.4, max_tokens: 1600 }) });
+   const raw = await response.text();
+   let parsed: any = {};
+   try { parsed = raw ? JSON.parse(raw) : {}; } catch { parsed = { _nonJson: raw.slice(0, 180) }; }
+   return { response, parsed, raw };
+  };
+  let selectedModel = model;
+  let result = await requestCompletion(selectedModel);
+
+  // Discover live Agent Router models and retry only for model-related errors, never for 401/auth failures.
+  if (isPowerMode && !result.response.ok && [400, 404].includes(result.response.status)) {
+   const firstError = String(result.parsed?.error?.message || result.parsed?.message || '');
+   if (/model|not found|unsupported|不存在|模型/i.test(firstError)) {
+    try {
+     const catalogResponse = await fetch('https://co.agentrouter.org/v1/models', { headers: { Authorization: `Bearer ${key}`, Accept: 'application/json' }, cache: 'no-store' });
+     const catalogRaw = await catalogResponse.text();
+     const catalog = catalogRaw ? JSON.parse(catalogRaw) : {};
+     const available = Array.isArray(catalog?.data) ? catalog.data.map((item: any) => String(item?.id || '')).filter(Boolean) : [];
+     const alternatives = available.filter((id: string) => id !== selectedModel).slice(0, 3);
+     for (const candidate of alternatives) {
+      const retry = await requestCompletion(candidate);
+      result = retry;
+      if (retry.response.ok) { selectedModel = candidate; break; }
+      if (![400, 404].includes(retry.response.status)) break;
+     }
+    } catch (discoveryError) {
+     console.error('Agent Router model discovery failed', { error: discoveryError instanceof Error ? discoveryError.message : 'unknown' });
+    }
+   }
+  }
+
+  const { response: r, parsed: data, raw: rawResponse } = result;
+  if (data?._nonJson) {
+   console.error('AI provider returned non-JSON response', { provider, status: r.status, contentType: r.headers.get('content-type'), preview: data._nonJson });
    return NextResponse.json({ error: isPowerMode
-    ? `Agent Router رجّع صفحة غير متوقعة (HTTP ${r.status}). راجع رابط API أو سجّل الأخطاء.`
+    ? `Agent Router رجّع استجابة غير متوقعة (HTTP ${r.status}).`
     : `OpenRouter رجّع استجابة غير متوقعة (HTTP ${r.status}).`, configured: true, powerMode: isPowerMode, providerStatus: r.status }, { status: 502 });
   }
   if (!r.ok) {
-   const providerMessage = String(data?.error?.message || data?.message || `HTTP ${r.status}`).slice(0, 240);
+   const providerMessage = String(data?.error?.message || data?.error?.detail || data?.message || `HTTP ${r.status}`).slice(0, 240);
    console.error('AI provider HTTP error', { provider, status: r.status, message: providerMessage });
-   return NextResponse.json({ error: isPowerMode
-    ? `فشل Agent Router (HTTP ${r.status}): ${providerMessage}`
-    : `فشل OpenRouter (HTTP ${r.status}): ${providerMessage}`, configured: true, powerMode: isPowerMode, providerStatus: r.status }, { status: 502 });
+   const userError = isPowerMode && r.status === 401
+    ? 'Agent Router رفض مفتاح API (401 Unauthorized). راجع أن AGENTROUTER_API_KEY هو مفتاح API الفعلي من لوحة Agent Router وليس رمزًا آخر، وتأكد من نسخه كاملًا دون مسافات.'
+    : isPowerMode ? `فشل Agent Router (HTTP ${r.status}): ${providerMessage}` : `فشل OpenRouter (HTTP ${r.status}): ${providerMessage}`;
+   return NextResponse.json({ error: userError, configured: true, powerMode: isPowerMode, providerStatus: r.status }, { status: 502 });
   }
-  return NextResponse.json({ reply: data?.choices?.[0]?.message?.content || 'لم أتمكن من صياغة رد الآن.', configured: true, provider, powerMode: isPowerMode, model: data?.model || model });
+  return NextResponse.json({ reply: data?.choices?.[0]?.message?.content || 'لم أتمكن من صياغة رد الآن.', configured: true, provider, powerMode: isPowerMode, model: data?.model || selectedModel });
  } catch (error) {
   console.error('AI assistant error', error);
   return NextResponse.json({ error: isPowerMode ? 'تعذر الاتصال بـ Agent Router. راجع مفتاح API واسم الموديل والرصيد.' : 'تعذر الاتصال بالمساعد الذكي المجاني الآن. قد يكون حد الاستخدام المجاني في OpenRouter قد انتهى مؤقتًا؛ حاول مرة أخرى لاحقًا.', configured: true, powerMode: isPowerMode }, { status: 502 });
